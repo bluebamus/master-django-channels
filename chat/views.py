@@ -6,6 +6,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.urls import reverse
+from . import models
+from django.db.models import Q
 
 
 class Main(View):
@@ -100,11 +102,26 @@ class ChatPerson(View):
 
         person = User.objects.get(id=id)
         me = request.user
+        messages = models.Message.objects.filter(Q(from_who=me , to_who=person) | Q(to_who=me , from_who=person)).order_by("date" , "time")
 
-        context = {"person": person, "me": me}
+
+        user_channel_name = models.UserChannel.objects.get(user=person)
+        data = {"type":"recevier_function",
+                "type_of_data":"the_messages_have_been_seen_from_the_other"}
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.send)(user_channel_name.channel_name, data)
 
 
-        return render(request=request, template_name="chat/chat_person.html",context=context)
+
+        messages_have_not_been_seen = models.Message.objects.filter(from_who=person, to_who=me)
+        messages_have_not_been_seen.update(has_been_seen=True)
+
+
+
+        context = {"person":person,
+                   "me":me,
+                   "messages":messages}
+        return render(request=request , template_name="chat/chat_person.html", context=context)
 
 
 # Create your views here.

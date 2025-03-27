@@ -75,6 +75,7 @@
         background-color: rgb(200, 0, 0);
         padding: 10px;
         color: rgb(255, 255, 255);
+      
         font-weight: bold;
       }
       main {
@@ -241,29 +242,41 @@
 
     <div id="reversed_div" style="display: flex;flex-direction: column-reverse;margin: 0;padding: 0;border: 0;overflow: auto;max-width: 100%;">
       <main id="messages-area">
-        <section class="to">
-          <div class="details">
-            <p>2024-01-30</p>
-            <div class="status">
-              <div></div>
-              <div></div>
-            </div>
-            <p>10:55:02</p>
-          </div>
-          <div class="message">
-            <p style="overflow-wrap: anywhere;">Message from you</p>
-          </div>
-        </section>
+        {% for message in messages %}
+          {% if message.from_who == me %}
+            <section class="to">
+              <div class="details">
+                <p>{{ message.date }}</p>
+                {% if message.has_been_seen %}
+                  <div class="status seen">
+                    <div></div>
+                    <div></div>
+                  </div>
+                {% else %}
+                  <div class="status">
+                    <div></div>
+                    <div></div>
+                  </div>
+                {% endif %}
 
-        <section class="from">
-          <div class="details">
-            <p>2024-01-30</p>
-            <p>10:55:02</p>
-          </div>
-          <div class="message">
-            <p style="overflow-wrap: anywhere;">Message from the other</p>
-          </div>
-        </section>
+                <p>{{ message.time }}</p>
+              </div>
+              <div class="message">
+                <p style="overflow-wrap: anywhere;">{{ message.message }}</p>
+              </div>
+            </section>
+          {% elif message.from_who == person %}
+            <section class="from">
+              <div class="details">
+                <p>{{ message.date }}</p>
+                <p>{{ message.time }}</p>
+              </div>
+              <div class="message">
+                <p style="overflow-wrap: anywhere;">{{ message.message }}</p>
+              </div>
+            </section>
+          {% endif %}
+        {% endfor %}
       </main>
     </div>
 
@@ -271,42 +284,38 @@
       <textarea name="text" oninput="this.style.height = ''; this.style.height = this.scrollHeight +'px'" id="the-message-to-send"></textarea>
       <button id="send-message-button">Send</button>
     </footer>
+
     <script>
+        const person_id = {{ person.id }};
+        const url = `ws://127.0.0.1:8000/websocket/${person_id}`;
+        const chat_websocket = new WebSocket(url);
 
-        const person_id = {{ person.id }}
+        const messages_area = document.getElementById("messages-area");
+        const text_area = document.getElementById("the-message-to-send");
+        const send_button = document.getElementById("send-message-button");
+        send_button.addEventListener("click", function(){
 
-        const url = `ws://127.0.0.1:8000/websocket/${person_id}`
-        const chat_websocket = new WebSocket(url)
-        
-        const messages_area = document.getElementById('messages-area')
-        const text_area = document.getElementById('the-message-to-send')
-        const send_button = document.getElementById('send-message-button')
-        
-        send_button.addEventListener('click', function () {
-        chat_websocket.send(`{"type":"new_message","message":"${text_area.value}"}`)
-        
-        messages_area.insertAdjacentHTML(
-            'beforeend',
-            `
-            <section class="to">
+            chat_websocket.send(`{ "type":"new_message", "message":"${text_area.value}" }`);
+
+            messages_area.insertAdjacentHTML("beforeend" , `<section class="to">
                 <div class="details">
-                <p>2024-01-30</p>
-                <div class="status">
-                    <div></div>
-                    <div></div>
-                </div>
-                <p>10:55:02</p>
+                    <p>2024-01-30</p>
+                    <div class="status"><div></div><div></div></div>
+                    <p>10:55:02</p>
                 </div>
                 <div class="message">
-                <p style="overflow-wrap: anywhere;">${text_area.value}</p>
+                    <p style="overflow-wrap: anywhere;">${text_area.value}</p>
                 </div>
-            </section>
-        `
-        )
-        
-        text_area.value = ''
-        })
-        
+            </section>`)
+
+            text_area.value = "";
+
+        });
+
+
+
+
+
         chat_websocket.onmessage = function(event){
             const received_data = JSON.parse(event.data)
 
@@ -332,7 +341,9 @@
                 }
             }
 
-        }
+        };
+
+
     </script>
   </body>
 </html>

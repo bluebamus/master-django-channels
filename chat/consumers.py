@@ -79,3 +79,15 @@ class ChatConsumer(WebsocketConsumer):
     def recevier_function(self, the_data_that_will_come_from_the_layer):
         data = json.dumps(the_data_that_will_come_from_the_layer)
         self.send(data)
+
+    def disconnect(self, close_code):
+        """ 연결 종료 시 print 실행 """
+        user = self.scope.get("user")
+        print(f"WebSocket 연결 종료 - User: {user} / {user.username} , Channel: {self.channel_name}, Close Code: {close_code}")
+
+        # try:
+        #     user_channel = models.UserChannel.objects.get(user=user)
+        #     user_channel.channel_name = None
+        #     user_channel.save()
+        # except models.UserChannel.DoesNotExist:
+        #     pass
